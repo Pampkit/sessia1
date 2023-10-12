@@ -1,9 +1,4 @@
-import io
-import os
 import tkinter as tk
-import sqlite3
-from tkinter import simpledialog
-
 import mysql.connector
 from PIL import Image, ImageTk
 

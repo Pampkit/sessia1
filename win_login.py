@@ -1,9 +1,6 @@
 import tkinter as tk
-import sqlite3
 import tkinter.messagebox
-
 import mysql.connector
-
 import win_product
 
 
@@ -66,5 +63,3 @@ def login():
 
     login_window.mainloop()
 
-
-login()
