@@ -2,6 +2,7 @@ import io
 import os
 import tkinter as tk
 import sqlite3
+from tkinter import simpledialog
 
 import mysql.connector
 from PIL import Image, ImageTk
@@ -12,22 +13,82 @@ def product(login_window, name, surname, role):
         product_window.destroy()
         login_window.deiconify()
 
-    product_window = tk.Toplevel()
-    product_window.title('Список товаров')
-    product_window.geometry('500x500')
+    def add_product_at_db(article, name, category, quantity_in_stock, manufacturer, cost, photo, description,
+                          window):
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="alisa",
+            password="alisa24462",
+            database="demo"
+        )
+        print("Connection to MySQL DB successful")
+        cursor = connection.cursor()
+        val = (article, name, description, category, photo, manufacturer, cost, 0, quantity_in_stock, 0)
+        sql = ("INSERT INTO Product(ProductArticleNumber, ProductName, ProductDescription, ProductCategory, "
+               "ProductPhoto, ProductManufacturer, ProductCost, ProductDiscountAmount, ProductQuantityInStock, "
+               "ProductStatus) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)")
+        cursor.execute(sql, val)
+        connection.commit()
+        connection.close()
+        window.destroy()
 
-    # Создаем кнопку назад
-    back_button = tk.Button(product_window, text="Назад", command=go_to_login)
-    # back_button.grid(row=0, column=0, padx=10)
-    back_button.pack(anchor="nw", pady=10, padx=10, side='left')
+    def add_product_window():
+        add_window = tk.Toplevel(product_window)
+        add_window.geometry('500x500')
 
-    name = tk.Label(product_window, text=f'{name} {surname} ({role})')
-    # name.grid(row=0, column=1, padx=10, sticky='e')
-    name.pack(anchor='ne', pady=10, padx=10, side='right')
+        article_label = tk.Label(add_window, text='Артикул')
+        article_label.pack()
+        article_entry = tk.Entry(add_window)
+        article_entry.pack()
 
-    # listbox = tk.Listbox(product_window, width=50)
-    # listbox.pack(pady=50)
+        name_label = tk.Label(add_window, text='Наименование')
+        name_label.pack()
+        name_entry = tk.Entry(add_window)
+        name_entry.pack()
 
+        category_label = tk.Label(add_window, text='Категория')
+        category_label.pack()
+        category_entry = tk.Entry(add_window)
+        category_entry.pack()
+
+        quantity_in_stock_label = tk.Label(add_window, text='Количество на складе')
+        quantity_in_stock_label.pack()
+        quantity_in_stock_entry = tk.Entry(add_window)
+        quantity_in_stock_entry.pack()
+
+        manufacturer_label = tk.Label(add_window, text='Производитель')
+        manufacturer_label.pack()
+        manufacturer_entry = tk.Entry(add_window)
+        manufacturer_entry.pack()
+
+        cost_label = tk.Label(add_window, text='Стоимость')
+        cost_label.pack()
+        cost_entry = tk.Entry(add_window)
+        cost_entry.pack()
+
+        photo_label = tk.Label(add_window, text='Изображение')
+        photo_label.pack()
+        photo_entry = tk.Entry(add_window)
+        photo_entry.pack()
+
+        description_label = tk.Label(add_window, text='Описание')
+        description_label.pack()
+        description_entry = tk.Entry(add_window)
+        description_entry.pack()
+
+        add_button = tk.Button(add_window, text='Добавить',
+                               command=lambda: add_product_at_db(article_entry.get(), name_entry.get(),
+                                                                 category_entry.get(),
+                                                                 quantity_in_stock_entry.get(),
+                                                                 manufacturer_entry.get(),
+                                                                 cost_entry.get(), photo_entry.get(),
+                                                                 description_entry.get(), add_window))
+
+        add_button.pack()
+        add_window.transient(product_window)
+        add_window.grab_set()
+        add_window.focus_set()
+        add_window.wait_window()
     def load_products():
         # подключение к базе данных
         connection = mysql.connector.connect(
@@ -40,57 +101,71 @@ def product(login_window, name, surname, role):
         cursor = connection.cursor()
 
         # Запрос на выборку всех товаров из базы данных
-        cursor.execute("SELECT ProductPhoto, ProductName, ProductCost FROM Product")
+        cursor.execute("SELECT ProductPhoto, ProductName, ProductDescription, ProductCost, ProductQuantityInStock "
+                       "FROM Product")
 
         # Получаем все строки с товарами
         products = cursor.fetchall()
 
-        img_directory = r'C:\Users\alisa\PycharmProjects\sessia1\Товар_import'
+        scrollbar = tk.Scrollbar(product_window, orient='vertical')
+        scrollbar.pack(side='right', fill='y', pady=40)
 
-        scrollbar = tk.Scrollbar(product_window, orient="vertical")
-        scrollbar.pack(side="right", fill="y")
+        canvas = tk.Canvas(product_window, yscrollcommand=scrollbar.set, width=800, height=400)
+        canvas.pack(side='left', fill='both', expand=True, pady=40)
 
-        canvas = tk.Canvas(product_window, yscrollcommand=scrollbar.set)
-        canvas.pack(expand=True, fill="both")
         scrollbar.config(command=canvas.yview)
 
-        frame = tk.Frame(canvas)
-        canvas.create_window((0, 0), window=frame, anchor="nw")
+        frame_container = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=frame_container, anchor='nw')
 
-        row_counter = 0  # Используйте счетчик строк для размещения виджетов в разных строках
-        photo_list = []
+        for product in products:
+            frame = tk.Frame(frame_container, bd=1, relief='solid')
+            frame.pack(anchor='w', fill='both')
+            fi = product[0].decode('utf-8')
+            if fi == 'xxxxx':
+                fi = 'B538G6.jpg'
+            image = Image.open('Товар_import/' + fi)
+            image = image.resize((50, 50))
+            image = ImageTk.PhotoImage(image)
+            image_label = tk.Label(frame, image=image)
+            image_label.image = image
 
-        for filename in os.listdir(img_directory):
-            if filename.endswith('.jpg') or filename.endswith('.png'):
-                img_path = os.path.join(img_directory, filename)
-                img = Image.open(img_path)
-                img = img.resize((100, 100))
-                photo = ImageTk.PhotoImage(img)
+            image_label.grid(row=0, column=0, rowspan=4)
 
-                photo_list.append(photo)
+            name = tk.Label(frame, text=f'{product[1]}')
+            name.grid(row=0, column=1, sticky="w")
 
-                # Создайте отдельные виджеты Label для текста и изображения
-                text_label = tk.Label(frame, text=filename)
-                image_label = tk.Label(frame, image=photo)
+            info = tk.Label(frame, text=f'{product[2]}')
+            info.grid(row=1, column=1, sticky="w")
 
-                # to prevent image from being garbage collected
-                image_label.image = photo
+            cost = tk.Label(frame, text=f'{product[3]}')
+            cost.grid(row=2, column=1, sticky="w")
 
-                # Упакуйте виджеты Label внутри Frame с увеличением значения row
-                text_label.grid(row=row_counter, column=1, sticky='w')  # Выравнивание текста слева
-                image_label.grid(row=row_counter, column=0, sticky='e')  # Выравнивание изображения справа
+            amount = tk.Label(frame, text=f'{product[4]}')
+            amount.grid(row=1, column=2, sticky="e")
 
-                row_counter += 1  # Увеличьте значение row для следующей пары "текст + изображение"
-        frame.update_idletasks()  # Обновите размеры канвы после добавления всех изображений
-        canvas.config(scrollregion=canvas.bbox("all"))  # Подстройте размеры канвы под изображения
-
-        canvas.bind("<Configure>", lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
-
-        # for product in products:
-        #     listbox.insert(tk.END,product[1])
-
+        frame_container.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox('all'))
         connection.close()
 
-    load_products()
+    product_window = tk.Toplevel()
+    product_window.title('Список товаров')
+    product_window.geometry('780x900')
+    # если на линухе, то
+    # product_window.geometry('1500x900')
 
+    # Создаем кнопку назад
+    back_button = tk.Button(product_window, text="Назад", command=go_to_login)
+    back_button.pack(anchor="nw", pady=10, padx=10, side='left')
+
+    name_lab = tk.Label(product_window, text=f'{name} {surname} ({role})')
+    name_lab.pack(anchor='ne', pady=10, padx=10, side='right')
+    if role == 'Администратор':
+        add_prod_button = tk.Button(product_window, text='Добавить товар', command=add_product_window)
+        add_prod_button.pack(anchor='n', pady=10)
+
+    update_button = tk.Button(product_window, text='Обновить данные', command=load_products)
+    update_button.pack(anchor='nw', padx=10, pady=10)
+
+    load_products()
     product_window.mainloop()
