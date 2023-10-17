@@ -84,7 +84,23 @@ def product(login_window, name, surname, role):
         add_window.grab_set()
         add_window.focus_set()
         add_window.wait_window()
-    def load_products():
+
+    def sorted_items(val, data):
+        if val == 'up':  # сортировка элементов по возрастанию
+            data = sorted(data, key=lambda x: x[3])
+        else:  # сортировка элементов по убыванию
+            data = sorted(data, key=lambda x: x[3], reverse=True)
+        return data
+
+    def search_items(search_name,data):
+        filter_data = []
+        for item in data:
+            if search_name.lower() in item[1].lower():
+                filter_data.append(item)
+        return filter_data
+
+    def load_products(val=None, search_entry=None):
+
         # подключение к базе данных
         connection = mysql.connector.connect(
             host="localhost",
@@ -101,20 +117,25 @@ def product(login_window, name, surname, role):
 
         # Получаем все строки с товарами
         products = cursor.fetchall()
+        products = sorted(products, key=lambda x: x[1])
+        if val is not None:
+            products = sorted_items(val, products)
 
-        scrollbar = tk.Scrollbar(product_window, orient='vertical')
+        if search_entry is not None:
+            print(search_entry.get())
+            search_name = search_entry.get()
+            products = search_items(search_name, products)
+
         scrollbar.pack(side='right', fill='y', pady=40)
-
-        canvas = tk.Canvas(product_window, yscrollcommand=scrollbar.set, width=800, height=400)
+        canvas.delete(tk.ALL)
+        canvas.config(yscrollcommand=scrollbar.set)
         canvas.pack(side='left', fill='both', expand=True, pady=40)
-
         scrollbar.config(command=canvas.yview)
 
         frame_container = tk.Frame(canvas)
         canvas.create_window((0, 0), window=frame_container, anchor='nw')
-
         for product in products:
-            frame = tk.Frame(frame_container, bd=1, relief='solid')
+            frame = tk.Frame(frame_container, relief='solid')
             frame.pack(anchor='w', fill='both')
             fi = product[0].decode('utf-8')
             if fi == 'xxxxx':
@@ -139,8 +160,9 @@ def product(login_window, name, surname, role):
             amount = tk.Label(frame, text=f'{product[4]}')
             amount.grid(row=1, column=2, sticky="e")
 
-        frame_container.update_idletasks()
-        canvas.config(scrollregion=canvas.bbox('all'))
+            frame_container.update_idletasks()
+            canvas.config(scrollregion=canvas.bbox('all'))
+
         connection.close()
 
     product_window = tk.Toplevel()
@@ -148,6 +170,9 @@ def product(login_window, name, surname, role):
     product_window.geometry('780x900')
     # если на линухе, то
     # product_window.geometry('1500x900')
+
+    canvas = tk.Canvas(product_window, width=800, height=400)
+    scrollbar = tk.Scrollbar(product_window, orient='vertical')
 
     # Создаем кнопку назад
     back_button = tk.Button(product_window, text="Назад", command=go_to_login)
@@ -161,6 +186,42 @@ def product(login_window, name, surname, role):
 
     update_button = tk.Button(product_window, text='Обновить данные', command=load_products)
     update_button.pack(anchor='nw', padx=10, pady=10)
+
+    frame = tk.Frame(product_window, borderwidth=1)
+
+    # ----------------------------SEARCH-----------------------------------
+    search_label = tk.Label(frame, text='Поиск')
+    search_label.pack(anchor='nw')
+    search_entry = tk.Entry(frame)
+    search_entry.pack(anchor='nw', side='left')
+
+
+    search_button = tk.Button(frame, text="Найти",command=lambda: load_products(search_entry=search_entry))
+    search_button.pack(anchor='nw', padx=4, side='left')
+
+
+
+    # ----------------------------SORT-----------------------------------
+    up = 'up'
+    down = 'down'
+    lang = tk.StringVar(value=up)
+    choice = ''
+
+    def sel():
+        nonlocal choice
+        choice = lang.get()
+        print(choice)
+
+    up_btn = tk.Radiobutton(frame, text=up, value=up, variable=lang, command=sel)
+    up_btn.pack(anchor='ne', side='right')
+
+    down_btn = tk.Radiobutton(frame, text=down, value=down, variable=lang, command=sel)
+    down_btn.pack(anchor='ne', side='right')
+
+    sort_button = tk.Button(frame, text='Сортировка по цене', command=lambda: load_products(choice))
+    sort_button.pack(anchor='ne', side='right')
+
+    frame.pack(anchor='nw', fill='x')
 
     load_products()
     product_window.mainloop()

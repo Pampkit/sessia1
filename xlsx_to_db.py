@@ -119,22 +119,23 @@ def role_export():
 
 def clear_base():
     '''Очистка базы sqlite'''
-
-    # Получаем текущую папку проекта
-    prj_dir = os.path.abspath(os.path.curdir)
-
-    # Имя базы
-    base_name = 'auto.sqlite3'
-
-    connect = sqlite3.connect(prj_dir + '/' + base_name)
-    cursor = connect.cursor()
+    connection = mysql.connector.connect(
+        host="localhost",
+        user="alisa",
+        password="alisa24462",
+        database="demo"
+    )
+    print("Connection to MySQL DB successful")
+    cursor = connection.cursor()
 
     # Запись в базу, сохранение и закрытие соединения
-    cursor.execute("DELETE FROM cars")
-    connect.commit()
-    connect.close()
+    cursor.execute("DELETE FROM Product")
+    connection.commit()
+    connection.close()
 
 
 # export_to_sqlite()
 # user_export()
 # role_export()
+
+# clear_base()
